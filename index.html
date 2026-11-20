@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>KTMB Meeting Transcriber</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F3F5F9;--surface:#FFFFFF;--ink:#16233B;--muted:#5A6478;--line:#D5DBE6;
+  --accent:#1F3864;--accent-ink:#FFFFFF;--accent-soft:#E3E9F4;--rec:#C0392B;--rec-soft:#FBE5E1;
+  --ok:#2E7D32;--warn:#9A5B00;--warn-soft:#FFF3DC;
+  --display:"Archivo",Arial,sans-serif;--body:"Public Sans",Arial,Helvetica,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F1522;--surface:#18202F;--ink:#E6EBF4;--muted:#9AA5B8;--line:#2C3648;
+  --accent:#8FB0E8;--accent-ink:#0F1522;--accent-soft:#233150;--rec:#FF7A6B;--rec-soft:#3A1F1C;
+  --ok:#7CCB82;--warn:#F2B860;--warn-soft:#352914;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-size:1.5rem;margin:0}
+h2{font-family:var(--display);font-size:1.08rem;margin:0 0 10px}
+.sub{color:var(--muted);margin:2px 0 0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px}
+textarea{resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 .95rem var(--body);padding:11px 16px;border-radius:8px;cursor:pointer;min-height:46px;text-decoration:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.rec{background:var(--rec);color:#fff;border-color:var(--rec);font-size:1.05rem;min-height:56px;padding:0 24px}
+.btn.rec.on{background:var(--rec-soft);color:var(--rec)}
+.dot{width:11px;height:11px;border-radius:50%;background:currentColor}
+.btn.rec.on .dot{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.btn.rec.on .dot{animation:none}}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:1.3rem;color:var(--rec)}
+.hint{color:var(--muted);font-size:.84rem;margin:6px 0 0}
+.note{border-radius:8px;padding:10px 12px;font-size:.88rem;margin:10px 0 0}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.info{background:var(--accent-soft)}
+.status{font-size:.88rem;color:var(--muted)}
+.status.err{color:var(--rec)}.status.ok{color:var(--ok)}
+ul.files{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+ul.files li{display:flex;justify-content:space-between;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:.88rem}
+ul.files li span:last-child{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+#out{min-height:260px;font-size:.95rem}
+.keyok{color:var(--ok);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>KTMB Meeting Transcriber</h1>
+    <p class="sub">Records the meeting on this iPad, or takes a recording, and turns mixed Bahasa Melayu and English speech into text for the MoM Recorder.</p>
+  </header>
+
+  <section class="panel" id="keyPanel">
+    <h2>OpenAI key</h2>
+    <div id="keyHave" hidden><span class="keyok">Key saved on this iPad.</span> <button class="btn" type="button" id="btnForget" style="margin-left:8px">Remove key</button></div>
+    <div id="keyNeed">
+      <label for="key">Paste your OpenAI API key (starts with sk-)</label>
+      <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-...">
+      <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="btnSaveKey">Save key on this iPad</button></div>
+      <p class="hint">The key is kept only in this browser on this iPad. It is sent only to OpenAI, never to anyone else.</p>
+    </div>
+    <details style="margin-top:10px"><summary>Settings</summary>
+      <label for="model">Accuracy</label>
+      <select id="model">
+        <option value="gpt-4o-transcribe">Best (about RM0.03 per minute)</option>
+        <option value="gpt-4o-mini-transcribe">Cheaper (about half the price)</option>
+      </select>
+      <label for="hints">Names and terms used in your meetings (helps spelling)</label>
+      <textarea id="hints" rows="3"></textarea>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>1. Record or choose a recording</h2>
+    <div class="row">
+      <button class="btn rec" type="button" id="btnRec"><span class="dot"></span><span id="recLabel">Start recording</span></button>
+      <span class="timer" id="timer" hidden>00:00</span>
+    </div>
+    <div class="note info" id="recTip">While recording, keep this page open and the iPad on the table. The screen stays on by itself. Do not switch apps, or the recording pauses.</div>
+    <div class="note warn" id="recMsg" hidden></div>
+    <div class="row" style="margin-top:12px">
+      <label class="btn" for="fileIn" style="margin:0;color:var(--ink);font-size:.95rem">Choose a recording</label>
+      <input id="fileIn" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.webm,.aac" multiple hidden>
+      <button class="btn" type="button" id="btnClearAudio">Delete recordings</button>
+    </div>
+    <p class="hint">For a Voice Memos recording: in Voice Memos tap the recording, then <b>Share › Save to Files</b>, then choose it here.</p>
+    <ul class="files" id="files"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>2. Turn it into text</h2>
+    <div class="row">
+      <button class="btn primary" type="button" id="btnGo">Transcribe</button>
+      <span class="status" id="goStatus" aria-live="polite"></span>
+    </div>
+    <label for="out">Transcript</label>
+    <textarea id="out" placeholder="The transcript appears here."></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" type="button" id="btnCopy">Copy transcript</button>
+      <a class="btn" id="btnTxt" download="meeting-transcript.txt" href="#">Save as .txt</a>
+      <a class="btn" href="https://claude.ai/artifact/1ePVfX9Jq7tn7zoFCjSpUj" target="_blank" rel="noopener">Open MoM Recorder</a>
+    </div>
+    <p class="hint">Then in the MoM Recorder, paste it into Step 2 (or Load transcript file) and tap Write minutes.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const ls={get(k,d){try{const v=localStorage.getItem("tx."+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem("tx."+k,v)}catch(e){}},del(k){try{localStorage.removeItem("tx."+k)}catch(e){}}};
+const SEG_MS=10*60*1000;           // recordings are cut into 10-minute pieces
+const DEFAULT_HINTS="KTMB, RSME, SMH Rail, Capital Spares, Ir. Mohd Kholel, Ir. Ts. Armizan, En. Erwan, Pn. Rafidah, En. Afiq, En. Anis Hilmi, EMU, ETS, locomotive, depoh, penyerahan.";
+
+// ---------- key & settings ----------
+function showKey(){const k=ls.get("key","");$("keyHave").hidden=!k;$("keyNeed").hidden=!!k}
+$("btnSaveKey").onclick=()=>{const k=$("key").value.trim();if(!/^sk-/.test(k)){$("key").focus();return}ls.set("key",k);$("key").value="";showKey()};
+$("btnForget").onclick=()=>{ls.del("key");showKey()};
+$("model").value=ls.get("model","gpt-4o-transcribe");$("model").onchange=()=>ls.set("model",$("model").value);
+$("hints").value=ls.get("hints",DEFAULT_HINTS);$("hints").oninput=()=>ls.set("hints",$("hints").value);
+$("out").value=ls.get("out","");$("out").oninput=()=>{ls.set("out",$("out").value);updTxt()};
+showKey();
+
+// ---------- storage for audio pieces (survives a reload) ----------
+let dbp=null;
+function db(){if(!dbp)dbp=new Promise((res,rej)=>{const r=indexedDB.open("ktmb-transcriber",1);r.onupgradeneeded=()=>r.result.createObjectStore("pieces",{keyPath:"id",autoIncrement:true});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return dbp}
+async function tx(mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction("pieces",mode);const s=t.objectStore("pieces");const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)})}
+const addPiece=p=>tx("readwrite",s=>s.add(p));
+const allPieces=()=>tx("readonly",s=>s.getAll());
+const clearPieces=()=>tx("readwrite",s=>s.clear());
+const fmt=ms=>{const s=Math.round(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":"+String(m).padStart(2,"0"):String(m).padStart(2,"0"))+":"+String(x).padStart(2,"0")};
+async function listFiles(){
+  let ps=[];try{ps=await allPieces()}catch(e){}
+  $("files").innerHTML="";
+  ps.forEach((p,i)=>{const li=document.createElement("li");const a=document.createElement("span");a.textContent=(p.name||("Recording part "+(i+1)));const b=document.createElement("span");b.textContent=(p.ms?fmt(p.ms)+" · ":"")+(p.blob.size/1048576).toFixed(1)+" MB"+(p.text!=null?" · done":"");li.append(a,b);$("files").append(li)});
+  $("btnGo").disabled=!ps.length;return ps;
+}
+listFiles();
+$("btnClearAudio").onclick=async()=>{if(rec)return;await clearPieces();listFiles();$("goStatus").textContent="Recordings deleted from this iPad.";$("goStatus").className="status"};
+
+// ---------- recording ----------
+let rec=null,stream=null,segStart=0,recStart=0,tick=null,cutTimer=null,wake=null,partNo=0,stopping=false;
+function pickType(){const c=["audio/mp4","audio/webm;codecs=opus","audio/webm"];for(const t of c){try{if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t}catch(e){}}return ""}
+async function keepAwake(){try{if("wakeLock" in navigator)wake=await navigator.wakeLock.request("screen")}catch(e){}}
+function startPiece(){
+  const type=pickType();const chunks=[];
+  const r=new MediaRecorder(stream,type?{mimeType:type,audioBitsPerSecond:64000}:undefined);
+  segStart=Date.now();
+  r.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  r.onstop=async()=>{
+    const blob=new Blob(chunks,{type:r.mimeType||type||"audio/mp4"});
+    partNo++;
+    if(blob.size>1000) await addPiece({name:"Recording part "+partNo,blob,ms:Date.now()-segStart,created:Date.now()});
+    listFiles();
+    if(!stopping&&stream) startPiece(); else finishStop();
+  };
+  r.start(1000);rec=r;
+  clearTimeout(cutTimer);cutTimer=setTimeout(()=>{if(rec&&rec.state==="recording")rec.stop()},SEG_MS);
+}
+function finishStop(){rec=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}clearInterval(tick);try{wake&&wake.release()}catch(e){}wake=null;
+  $("btnRec").classList.remove("on");$("recLabel").textContent="Start recording";stopping=false}
+$("btnRec").onclick=async()=>{
+  if(rec){stopping=true;clearTimeout(cutTimer);rec.stop();$("recLabel").textContent="Saving…";return}
+  $("recMsg").hidden=true;
+  if(!navigator.mediaDevices||!window.MediaRecorder){$("recMsg").textContent="This browser cannot record. Use Voice Memos and choose the recording below.";$("recMsg").hidden=false;return}
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:true}})}
+  catch(e){$("recMsg").textContent="The microphone was not allowed. In Settings › Chrome (or Safari), turn on Microphone, then try again.";$("recMsg").hidden=false;return}
+  try{const ex=await allPieces();partNo=ex.filter(p=>/^Recording part/.test(p.name||"")).length}catch(e){partNo=0}
+  recStart=Date.now();startPiece();keepAwake();
+  $("btnRec").classList.add("on");$("recLabel").textContent="Stop recording";$("timer").hidden=false;$("timer").textContent="00:00";
+  clearInterval(tick);tick=setInterval(()=>{$("timer").textContent=fmt(Date.now()-recStart)},1000);
+};
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden"&&rec){$("recMsg").textContent="You left the page while recording. Recording may have paused for that time. Everything recorded so far is saved.";$("recMsg").hidden=false}
+  if(document.visibilityState==="visible"&&rec&&!wake)keepAwake();
+});
+
+// ---------- choosing files ----------
+$("fileIn").onchange=async e=>{
+  const fs=Array.from(e.target.files||[]);e.target.value="";
+  for(const f of fs){
+    const ms=await durationOf(f).catch(()=>0);
+    await addPiece({name:f.name,blob:f,ms,created:Date.now()});
+  }
+  listFiles();
+};
+function durationOf(blob){return new Promise((res,rej)=>{const a=document.createElement("audio");a.preload="metadata";const u=URL.createObjectURL(blob);a.onloadedmetadata=()=>{const d=a.duration;URL.revokeObjectURL(u);isFinite(d)?res(d*1000):rej()};a.onerror=()=>{URL.revokeObjectURL(u);rej()};a.src=u})}
+
+// ---------- splitting long files into 10-minute WAV pieces ----------
+async function splitAudio(blob,onStep){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ctx=new AC({sampleRate:16000});
+  let buf;try{buf=await ctx.decodeAudioData(await blob.arrayBuffer())}finally{try{ctx.close()}catch(e){}}
+  const n=buf.length,sr=buf.sampleRate,ch=buf.numberOfChannels;
+  const mono=new Float32Array(n);for(let c=0;c<ch;c++){const d=buf.getChannelData(c);for(let i=0;i<n;i++)mono[i]+=d[i]/ch}
+  buf=null;
+  const per=Math.floor(SEG_MS/1000*sr),out=[];
+  for(let s=0;s<n;s+=per){out.push(wav(mono.subarray(s,Math.min(n,s+per)),sr));onStep&&onStep(out.length)}
+  return out;
+}
+function wav(samples,sr){
+  const b=new ArrayBuffer(44+samples.length*2),v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,"RIFF");v.setUint32(4,36+samples.length*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,samples.length*2,true);
+  for(let i=0;i<samples.length;i++){const x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(44+i*2,x<0?x*32768:x*32767,true)}
+  return new Blob([b],{type:"audio/wav"});
+}
+
+// ---------- OpenAI ----------
+function extFor(b){const t=(b.type||"").toLowerCase();if(t.includes("wav"))return "wav";if(t.includes("webm"))return "webm";if(t.includes("mpeg")||t.includes("mp3"))return "mp3";if(t.includes("ogg"))return "ogg";return "m4a"}
+function promptFor(prev){
+  const base="Mesyuarat rasmi KTMB (Keretapi Tanah Melayu Berhad). Penceramah bertukar antara Bahasa Melayu dan English dalam ayat yang sama. Transcribe exactly as spoken, keeping every word in the language it was said; do not translate. Kita bincang pasal capital spares dan delivery schedule, so please confirm by next week. Names and terms: "+$("hints").value.trim();
+  return prev?base+"\nPrevious part ended with: "+prev.slice(-400):base;
+}
+async function transcribeBlob(blob,prev){
+  const key=ls.get("key","");if(!key)throw new Error("Save your OpenAI key first (top of the page).");
+  for(let attempt=0;attempt<4;attempt++){
+    const fd=new FormData();
+    fd.append("file",blob,"audio."+extFor(blob));
+    fd.append("model",$("model").value);
+    fd.append("response_format","json");
+    fd.append("prompt",promptFor(prev));
+    let r;
+    try{r=await fetch("https://api.openai.com/v1/audio/transcriptions",{method:"POST",headers:{Authorization:"Bearer "+key},body:fd})}
+    catch(e){if(attempt<3){await sleep(2000*(attempt+1));continue}throw new Error("No internet connection to OpenAI. Check Wi-Fi and tap Transcribe again; finished parts are kept.")}
+    if(r.ok){const j=await r.json();return (j.text||"").trim()}
+    let msg="";try{msg=(await r.json()).error.message}catch(e){}
+    if(r.status===401)throw new Error("OpenAI did not accept the key. Remove it and paste it again.");
+    if(r.status===429&&/quota|billing|credit/i.test(msg))throw new Error("Your OpenAI account has no credit left. Add credit at platform.openai.com › Billing.");
+    if((r.status===429||r.status>=500)&&attempt<3){await sleep(3000*(attempt+1));continue}
+    throw new Error("OpenAI error "+r.status+(msg?": "+msg:""));
+  }
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const MAX_DIRECT_MS=20*60*1000,MAX_DIRECT_BYTES=24*1048576;
+
+$("btnGo").onclick=async()=>{
+  const st=$("goStatus");st.className="status";
+  if(rec){st.className="status err";st.textContent="Stop the recording first.";return}
+  $("btnGo").disabled=true;$("btnRec").disabled=true;
+  try{
+    const ps=await allPieces();ps.sort((a,b)=>a.created-b.created||a.id-b.id);
+    const parts=[];let prev="";
+    for(let i=0;i<ps.length;i++){
+      const p=ps[i];
+      if(p.text!=null){parts.push(p.text);prev=p.text;continue}
+      let blobs=[p.blob];
+      if(p.blob.size>MAX_DIRECT_BYTES||!p.ms||p.ms>MAX_DIRECT_MS){
+        st.textContent="Preparing "+(p.name||"recording")+" (long recordings take a minute)…";
+        blobs=await splitAudio(p.blob,k=>{st.textContent="Preparing "+(p.name||"recording")+": piece "+k+"…"});
+      }
+      const texts=[];
+      for(let k=0;k<blobs.length;k++){
+        st.textContent="Transcribing "+(p.name||"recording")+(blobs.length>1?" piece "+(k+1)+" of "+blobs.length:"")+" ("+(i+1)+" of "+ps.length+")…";
+        const t=await transcribeBlob(blobs[k],prev);texts.push(t);prev=t;
+      }
+      p.text=texts.join("\n");parts.push(p.text);
+      await tx("readwrite",s=>s.put(p));listFiles();
+    }
+    const all=parts.filter(Boolean).join("\n\n");
+    $("out").value=all;ls.set("out",all);updTxt();
+    st.className="status ok";st.textContent="Done. "+all.split(/\s+/).filter(Boolean).length.toLocaleString()+" words. Copy it into the MoM Recorder.";
+  }catch(e){st.className="status err";st.textContent=e.message||String(e)}
+  finally{$("btnGo").disabled=false;$("btnRec").disabled=false;listFiles()}
+};
+
+// ---------- output ----------
+let txtUrl=null;
+function updTxt(){if(txtUrl)URL.revokeObjectURL(txtUrl);txtUrl=URL.createObjectURL(new Blob([$("out").value],{type:"text/plain"}));$("btnTxt").href=txtUrl}
+updTxt();
+$("btnCopy").onclick=async()=>{const t=$("out").value;try{await navigator.clipboard.writeText(t);$("goStatus").className="status ok";$("goStatus").textContent="Copied. Paste it into Step 2 of the MoM Recorder."}catch(e){$("out").focus();$("out").select();$("goStatus").textContent="Text selected. Tap Copy in the menu."}};
+})();
+</script>
+</body>
+</html>
